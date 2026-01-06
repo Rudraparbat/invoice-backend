@@ -10,6 +10,7 @@ wheels/
 .venv
 .env
 
-.db
-
+db
+*.sqlite3
 data/
+static/

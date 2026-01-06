@@ -58,3 +58,8 @@ coverage.xml
 
 # Data
 data/
+
+db
+*.sqlite3
+data/
+static/
