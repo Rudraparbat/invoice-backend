@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 import jinja2
 import qrcode
+from django.utils import timezone
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -45,21 +46,19 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
     serializer_class = InvoiceDataSerializer
 
     async def generate_qr_data(self , token: str , data) -> str:
-        now = datetime.utcnow()
+        now = timezone.localtime()
         expiry = now + timedelta(hours=2)
-        qr_data = {
-            "day": now.strftime("%A"),  # Monday
-            "date": now.strftime("%Y-%m-%d"),  # 2026-01-04
-            "time": now.strftime("%H:%M"),  # 17:06
-            "expired_time": expiry.strftime("%Y-%m-%d %H:%M"),  # 2026-01-04 19:06
-            "sl_no": data["id"],
-            "car_number": data["car_number"],
-            "wheels": data["wheels"],
-            "location": data["location"],
-            "cft": data["cft"],
-            "expiry_ts": int(expiry.timestamp() * 1000)  # JS timestamp
-        }
-        return json.dumps(qr_data) 
+        qr_text = f"""
+                WBMDTCL e-Challan (Sand Stock)
+
+                Challan No        : {data['id']}
+                Validity Till     : {expiry.strftime('%d/%m/%Y %I:%M %p')}
+                Vehicle No        : {data['car_number']}
+                Location          : {data['location']}
+                Quantity (CFT)    : {data['cft']}
+                """.strip()
+
+        return qr_text
     
     @sync_to_async
     def validate_and_save(self , data , user) :
@@ -82,7 +81,7 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
             qr_data = await self.generate_qr_data(token , data)
                 
             # Generate QR as base64
-            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr = qrcode.QRCode(version=None, box_size=10, border=4)
             qr.add_data(qr_data)
             qr.make(fit=True)
             img = qr.make_image(fill_color="black", back_color="white")
@@ -97,7 +96,7 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
             created_at_dt = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
             formatted_date = created_at_dt.strftime("%d-%m-%Y %H:%M")
             template = templates.get_template("invoice.html")
-            
+
             html_content = template.render(
                     sl_no=data["id"],
                     car_number=data["car_number"],
