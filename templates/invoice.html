@@ -130,7 +130,7 @@
         <div class="invoice-info">
             <div class="info-section">
                 <div><label>Sl No.:</label> <span class="value">{{ sl_no }}</span></div>
-                <div style="margin-top: 8px;"><label>Date/Time:</label> <span class="value">{{ date_time.strftime('%Y-%m-%d %H:%M') }}</span></div>
+                <div style="margin-top: 8px;"><label>Date/Time:</label> <span class="value">{{ date_time }}</span></div>
             </div>
             
             <div class="info-section">
@@ -151,7 +151,7 @@
         
         <!-- Payment QR Section -->
         <div class="payment-note">
-            ⏰ <strong>QR Valid for 2 Hours</strong> - Generated at {{ date_time.strftime('%Y-%m-%d %H:%M') }}
+            ⏰ <strong>QR Valid for 2 Hours</strong> - Generated at {{ date_time }}
         </div>
         
         <div class="qr-section">

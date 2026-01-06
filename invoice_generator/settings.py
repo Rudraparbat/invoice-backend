@@ -123,7 +123,13 @@ else:
         }
     }
 
-
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Invoice API',
+    'DESCRIPTION': 'API description',
+    'VERSION': '1.0.0',
+    'ENABLE_SCHEMA_VIEW_ACTIONS': True,  # Scans actions
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
