@@ -2,6 +2,7 @@ import base64
 from datetime import datetime, timedelta
 from io import BytesIO
 import uuid
+from django.db.models import Sum, Count, Q
 from django.http import HttpResponse
 from django.shortcuts import render
 import jinja2
@@ -21,11 +22,13 @@ import json
 from adrf.viewsets import GenericViewSet as AsyncGenericViewSet
 from asgiref.sync import sync_to_async
 from django.db.models import Q
-from sqlalchemy import Transaction
+from sqlalchemy import Case
 from weasyprint import HTML
 from drf_spectacular.utils import extend_schema, OpenApiResponse
+from ivg.constant import PayMentStatus, PaymentMethodType
+from ivg.models import InvoiceData
 from ivg.serializers import InvoiceDataSerializer
-from django.db import transaction
+
 # Create your views here.
 templates = jinja2.Environment(
     loader=jinja2.FileSystemLoader("templates"),
@@ -120,6 +123,83 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
             return response
+        except Exception as e :
+            return Response(
+            {"error": str(e)},
+            status=400
+        )
+
+    @action(detail=False , methods=['get'] , url_path='list')
+    async def list_invoices(self , request) :
+        try :
+            user = request.user
+            invoices = await sync_to_async(list)(InvoiceData.objects.filter(created_by=user).order_by('-created_at'))
+            serializer = InvoiceDataSerializer(invoices , many=True)
+            return Response(
+                {
+                    "success" : True ,
+                    "data" : serializer.data ,
+                    "error" : None
+                }
+            )
+        except Exception as e :
+            return Response(
+            {"error": str(e)},
+            status=400
+        )
+
+    @action(detail=True , methods=['get'] , url_path='detail')
+    async def invoice_detail(self , request , pk=None) :
+        try :
+            user = request.user
+            invoice = await sync_to_async(InvoiceData.objects.get)(Q(id=pk) & Q(created_by=user))
+            serializer = InvoiceDataSerializer(invoice)
+            return Response(
+                {
+                    "success" : True ,
+                    "data" : serializer.data ,
+                    "error" : None
+                }
+            )
+        except Exception as e :
+            return Response(
+            {"error": str(e)},
+            status=400
+        )
+
+    
+    @action(detail=False, methods=['get'], url_path='stats')
+    async def stats(self, request):
+        try :
+            user = request.user
+            stats = await sync_to_async(lambda : InvoiceData.objects.filter(created_by=user).aggregate(
+            total_entries=Count("id"),
+            total_amount=Sum("paid_amount"),
+            total_cash_amount=Sum(
+                "paid_amount",
+                filter=Q(payment_in=PaymentMethodType.CASH.value)
+            ),
+            total_upi_amount=Sum(
+                "paid_amount",
+                filter=Q(payment_in=PaymentMethodType.UPI.value)
+            ),
+        ))()
+
+            response_data = {
+                "total_entries": stats["total_entries"] or 0,
+                "total_amount": stats["total_amount"] or 0,
+                "total_paid_cash": stats["total_cash_amount"] or 0,
+                "total_paid_upi": stats["total_upi_amount"] or 0,
+            }
+
+            return Response(
+                {
+                    "success": True,
+                    "data": response_data,
+                    "error": None
+                }
+            )
+        
         except Exception as e :
             return Response(
             {"error": str(e)},
