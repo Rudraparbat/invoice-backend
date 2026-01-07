@@ -7,33 +7,30 @@ from django.http import HttpResponse
 from django.shortcuts import render
 import jinja2
 import qrcode
-from django.utils import timezone
-from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import  IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from drf_spectacular.utils import extend_schema, OpenApiResponse
-from drf_spectacular.types import OpenApiTypes
-from rest_framework.viewsets import GenericViewSet
 from rest_framework.views import APIView
 from rest_framework.decorators import action
-from drf_spectacular.utils import extend_schema
-import json
+from rest_framework.pagination import PageNumberPagination
 from adrf.viewsets import GenericViewSet as AsyncGenericViewSet
 from asgiref.sync import sync_to_async
 from django.db.models import Q
-from sqlalchemy import Case
 from weasyprint import HTML
-from drf_spectacular.utils import extend_schema, OpenApiResponse
 from ivg.constant import PayMentStatus, PaymentMethodType
 from ivg.models import InvoiceData
-from ivg.serializers import InvoiceDataSerializer
+from ivg.serializers import InvoiceDataListSerializer, InvoiceDataSerializer
 
 # Create your views here.
 templates = jinja2.Environment(
     loader=jinja2.FileSystemLoader("templates"),
     autoescape=True
 )
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 20  # Default 20 items per page
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 class HealthCheckViewSet(APIView):
@@ -47,16 +44,16 @@ class HealthCheckViewSet(APIView):
 class InvoiceCreationViewSet(AsyncGenericViewSet) :
     permission_classes = [IsAuthenticated , IsAdminUser]
     serializer_class = InvoiceDataSerializer
+    pagination_class = StandardResultsSetPagination
 
-    async def generate_qr_data(self , token: str , data) -> str:
-        now = timezone.localtime()
-        expiry = now + timedelta(hours=2)
+    async def generate_qr_data(self , data , creation_time) -> str:
+
         qr_text = f"""
-                WBMDTCL e-Challan (Sand Stock)
-
+                E-Challan (Sand Stock)
                 Challan No        : {data['id']}
-                Validity Till     : {expiry.strftime('%d/%m/%Y %I:%M %p')}
+                Generated Date    : {creation_time}
                 Vehicle No        : {data['car_number']}
+                WHEELS            : {data['wheels']}
                 Location          : {data['location']}
                 Quantity (CFT)    : {data['cft']}
                 """.strip()
@@ -69,7 +66,7 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
             serializer = InvoiceDataSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save(created_by=user)
-            return serializer.data     
+            return serializer.data    
         except Exception as e :
             raise ValueError(str(e))
 
@@ -79,9 +76,11 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
         try :
             data = await self.validate_and_save(request.data , request.user)
 
-                # Generate unique token for QR (2-hour expiry)
-            token = str(uuid.uuid4())
-            qr_data = await self.generate_qr_data(token , data)
+            created_at_str = data["created_at"]
+            created_at_dt = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+            formatted_date = created_at_dt.strftime("%d-%m-%Y %H:%M")
+
+            qr_data = await self.generate_qr_data(data , formatted_date)
                 
             # Generate QR as base64
             qr = qrcode.QRCode(version=None, box_size=10, border=4)
@@ -92,12 +91,10 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
             img.save(buffered, format="PNG")
             qr_base64 = base64.b64encode(buffered.getvalue()).decode()
                 
-            print(data)
+            print("DEBUG CHALAN DATA : - " , data)
                 # Render template - pass raw data only
 
-            created_at_str = data["created_at"]
-            created_at_dt = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
-            formatted_date = created_at_dt.strftime("%d-%m-%Y %H:%M")
+            
             template = templates.get_template("invoice.html")
 
             html_content = template.render(
@@ -107,15 +104,14 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
                     wheels=data["wheels"],
                     cargo_type=data["location"],
                     cft=data["cft"],
-                    qr_base64=qr_base64,
-                    token=token[:8]
+                    qr_base64=qr_base64
             )
         
                 # Generate PDF
             html = HTML(string=html_content)
             pdf_bytes = html.write_pdf()
                 
-            filename = f"invoice-{data["car_number"].replace(' ', '')}-{token[:8]}.pdf"
+            filename = f"invoice-{data["car_number"].replace(' ', '')}-{data['id']}.pdf"
             response = HttpResponse(
                     pdf_bytes,
                     content_type="application/pdf"
@@ -130,43 +126,31 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
         )
 
     @action(detail=False , methods=['get'] , url_path='list')
-    async def list_invoices(self , request) :
+    def list_invoices(self , request) :
         try :
-            user = request.user
-            invoices = await sync_to_async(list)(InvoiceData.objects.filter(created_by=user).order_by('-created_at'))
-            serializer = InvoiceDataSerializer(invoices , many=True)
-            return Response(
-                {
-                    "success" : True ,
-                    "data" : serializer.data ,
-                    "error" : None
-                }
-            )
+
+            invoices = InvoiceData.objects.all().order_by('-created_at')
+            print("DEBUG INVOICE QS :- " , invoices)
+
+            paginator =  self.pagination_class()
+            page = paginator.paginate_queryset(invoices, request)
+            
+            print("DEBUG INVOICE PAGE :- " , page)
+            serializer = InvoiceDataListSerializer(page, many=True)
+
+            
+            return Response(serializer.data)
+
+            
         except Exception as e :
             return Response(
-            {"error": str(e)},
+            {
+                    "success" : False ,
+                    "data" :  None,
+                    "error" : str(e)
+                },
             status=400
         )
-
-    @action(detail=True , methods=['get'] , url_path='detail')
-    async def invoice_detail(self , request , pk=None) :
-        try :
-            user = request.user
-            invoice = await sync_to_async(InvoiceData.objects.get)(Q(id=pk) & Q(created_by=user))
-            serializer = InvoiceDataSerializer(invoice)
-            return Response(
-                {
-                    "success" : True ,
-                    "data" : serializer.data ,
-                    "error" : None
-                }
-            )
-        except Exception as e :
-            return Response(
-            {"error": str(e)},
-            status=400
-        )
-
     
     @action(detail=False, methods=['get'], url_path='stats')
     async def stats(self, request):
