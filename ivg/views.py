@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 import uuid
 from django.db.models import Sum, Count, Q
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import render
 import jinja2
 import qrcode
@@ -112,13 +112,13 @@ class InvoiceCreationViewSet(AsyncGenericViewSet) :
             pdf_bytes = html.write_pdf()
                 
             filename = f"invoice-{data["car_number"].replace(' ', '')}-{data['id']}.pdf"
-            response = HttpResponse(
-                    pdf_bytes,
-                    content_type="application/pdf"
-                )
-            response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-            return response
+            pdf_buffer = BytesIO(pdf_bytes)
+            return FileResponse(
+                pdf_buffer,
+                as_attachment=False,
+                filename=filename,
+                content_type="application/pdf"
+            )
         except Exception as e :
             return Response(
             {"error": str(e)},
