@@ -28,7 +28,13 @@ SECRET_KEY = 'django-insecure-=gxy)jkg0r32sd*x$2jq&)r-m8_e86#ra0_vtgb_jdzm*w64pb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["invoice-backend-ttkj.onrender.com" ,".onrender.com" , "https://invoice-backend-ttkj.onrender.com" , "http://localhost:3000" , "https://bali-khadan-mini.onrender.com"]
+ALLOWED_HOSTS = [
+    'invoice-backend-ttkj.onrender.com',
+    '.onrender.com',  
+    'bali-khadan-mini.onrender.com',
+    'localhost',
+    '127.0.0.1',
+]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://invoice-backend-ttkj.onrender.com",
