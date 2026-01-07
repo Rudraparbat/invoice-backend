@@ -28,8 +28,12 @@ SECRET_KEY = 'django-insecure-=gxy)jkg0r32sd*x$2jq&)r-m8_e86#ra0_vtgb_jdzm*w64pb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["http://localhost:3000/" , "https://bali-khadan-mini.onrender.com/"]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "https://bali-khadan-mini.onrender.com",
+]
 
 # Application definition
 
