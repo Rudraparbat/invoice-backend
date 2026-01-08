@@ -4,8 +4,24 @@ from django.contrib.auth.models import AbstractUser
 
 from ivg.constant import PayMentStatus, PaymentMethodType, TripStatusType
 
+class Base(models.Model):
+    """Base model that provides UUID primary key for all models"""
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-# Create your models here.
+    class Meta:
+        abstract = True
+
+class Branches(Base):
+    name = models.CharField(max_length=255, unique=True)
+    address = models.TextField(null=True , blank= True)
+    additional_info = models.JSONField(null=True , blank=True)
+    slug = models.CharField(max_length=255, unique=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"BRANCH - {self.name}"
+
 class InvoiceUser(AbstractUser):
     id = models.UUIDField(
         default=uuid.uuid4, editable=False, primary_key=True, unique=True
@@ -13,7 +29,7 @@ class InvoiceUser(AbstractUser):
     is_system = models.BooleanField(
         default=False, help_text="Designates whether the user is a system user."
     )
-    
+    branch = models.ForeignKey(Branches , on_delete=models.CASCADE , null=True , blank=True)
 
     @property
     def user_type(self):
@@ -31,15 +47,7 @@ class InvoiceUser(AbstractUser):
         super().save(*args, **kwargs)
 
 
-class Base(models.Model):
-    """Base model that provides UUID primary key for all models"""
 
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
 
 class InvoiceData(Base) :
     created_by = models.ForeignKey(InvoiceUser, on_delete=models.CASCADE)  
@@ -51,10 +59,6 @@ class InvoiceData(Base) :
     location = models.CharField(max_length=300)
     wheels = models.IntegerField()
     cft = models.FloatField()
-    total_cost = models.FloatField()
-    payment_in = models.CharField(max_length=50, choices=PaymentMethodType.choices())
-    paid_amount = models.FloatField()
-    payment_status = models.CharField(max_length=50, choices=PayMentStatus.choices())
     remarks = models.TextField(null=True , blank=True)
 
     class Meta :
