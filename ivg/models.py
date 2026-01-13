@@ -12,6 +12,16 @@ class Base(models.Model):
     class Meta:
         abstract = True
 
+class Vendors(Base) :
+    name = models.CharField(max_length=255, unique=True)
+    additional_info = models.JSONField(null=True , blank=True)
+    slug = models.CharField(max_length=255, unique=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"BRANCH - {self.name}"
+    
+
 class Branches(Base):
     name = models.CharField(max_length=255, unique=True)
     address = models.TextField(null=True , blank= True)
@@ -26,25 +36,35 @@ class InvoiceUser(AbstractUser):
     id = models.UUIDField(
         default=uuid.uuid4, editable=False, primary_key=True, unique=True
     )
-    is_system = models.BooleanField(
-        default=False, help_text="Designates whether the user is a system user."
+    is_ultraadmin = models.BooleanField(
+        default=False, help_text="Designates whether the user is a Ultraadmin user."
+    )
+    is_superadmin = models.BooleanField(
+        default=False , help_text="Represent The Super Admin User"
+    )
+    is_coofficer = models.BooleanField(
+        default=False , help_text="Represent The Co-Officer"
+    )
+    is_admin = models.BooleanField(
+        default=True , help_text="Represent The Normal User"
     )
     branch = models.ForeignKey(Branches , on_delete=models.CASCADE , null=True , blank=True)
 
     @property
     def user_type(self):
-        if self.is_superuser:
-            return "admin"
-        elif self.is_system:
-            return "system"
+        if self.is_ultraadmin:
+            return "ultraadmin"
+        elif self.is_superadmin:
+            return "superadmin"
+        elif self.is_coofficer:
+            return "coofficer"
+        elif self.is_admin:
+            return "adminuser"
         else:
             return "user"
-
-    def save(self, *args, **kwargs):
-        # If user is admin, set agent_manager and is_system to True
-        if self.is_superuser:
-            self.is_system = True
-        super().save(*args, **kwargs)
+        
+    def __str__(self):
+        return f"{self.username} - {self.user_type}"
 
 
 

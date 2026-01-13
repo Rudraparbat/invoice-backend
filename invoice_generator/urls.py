@@ -20,11 +20,14 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.conf import settings
 from django.conf.urls.static import static
 import ivg
-
+from ivg.urls import branch_router , user_manage_router
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
     path('swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path("api/branches/" , include(branch_router.urls)),
+    path("api/manage/" , include(user_manage_router.urls)),
     path("api/users/", include("ivg.urls")),
+    
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

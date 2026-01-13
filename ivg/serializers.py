@@ -28,11 +28,19 @@ class BranchSerializer(serializers.ModelSerializer) :
         fields = '__all__'
     
 class InvoiceUserSerializer(serializers.ModelSerializer):
-    branch = BranchSerializer()
+    branch = BranchSerializer(many=True)
     class Meta:
         model = InvoiceUser
-        fields = ['id', 'branch' , 'username', 'email' , 'first_name' ,'last_name', 'is_superuser']  # Add more fields as needed: email, first_name, etc.
+        fields = ['id', 'branch' , 'username', 'email' , 'first_name' ,'last_name', 'user_type']  # Add more fields as needed: email, first_name, etc.
 
+class InvoiceUserCreateSerializer(serializers.ModelSerializer) :
+    class Meta :
+        model = InvoiceUser
+    
+class UltraAdminDashBoardSerializer(serializers.Serializer) :
+    total_branches = serializers.IntegerField()
+    total_users = serializers.IntegerField()
+    
 class InvoiceDataListSerializer(serializers.ModelSerializer):
     created_by = InvoiceUserSerializer(read_only=True)  # Nested user details
     
@@ -43,3 +51,5 @@ class InvoiceDataListSerializer(serializers.ModelSerializer):
             'phone_number', 'name', 'location', 'wheels', 'cft', 
             'remarks', 'created_at' , 'updated_at'
         ]
+
+
