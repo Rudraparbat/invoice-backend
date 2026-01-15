@@ -3,12 +3,9 @@ from rest_framework import serializers
 
 from ivg.models import Branches, InvoiceData, InvoiceUser
 
-
-class FileUploadSerializer(serializers.Serializer):
-    url = serializers.URLField()
+class InvoiceViewFileSerializer(serializers.Serializer):
     invoice_id = serializers.IntegerField()
-
-
+    
 class PresignedURLSerializer(serializers.Serializer):
     filename = serializers.CharField(max_length=255)
     invoice_id = serializers.IntegerField()
@@ -17,6 +14,10 @@ class PresignedURLSerializer(serializers.Serializer):
 class UpdateInvoiceFileSerializer(serializers.Serializer):
     invoice_id = serializers.IntegerField()
     object_key = serializers.CharField(max_length=500)
+
+
+class ListInvoiceFilesSerializer(serializers.Serializer):
+    invoice_id = serializers.IntegerField()
 
 
 class InvoiceGenerationSerializer(serializers.ModelSerializer):
