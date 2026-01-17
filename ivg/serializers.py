@@ -30,6 +30,7 @@ class InvoiceGenerationSerializer(serializers.ModelSerializer):
             'id', 'trip', 'police_station', 'car_number', 
             'phone_number', 'name', 'location', 'wheels', 
             'cft', 'remarks',
+            'object_key',
             'created_by_name'
         ]
         read_only_fields = ('id', 'created_by_name')
@@ -65,7 +66,7 @@ class InvoiceDataListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'created_by', 'trip', 'police_station', 'car_number', 
             'phone_number', 'name', 'location', 'wheels', 'cft', 
-            'remarks', 'file_url', 'created_at' , 'updated_at'
+            'remarks', 'object_key', 'created_at' , 'updated_at'
         ]
 
 

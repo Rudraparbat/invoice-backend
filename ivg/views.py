@@ -99,80 +99,86 @@ class GetPresignedURLAPIView(APIView):
     serializer_class = PresignedURLSerializer
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        filename = serializer.validated_data['filename']
-        invoice_id = serializer.validated_data['invoice_id']
-
-        # Check if invoice exists and accessible
         try:
-            InvoiceData.objects.get(id=invoice_id, created_by__branch=request.user.branch)
-        except InvoiceData.DoesNotExist:
-            return Response({"error": "Invoice not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
+            serializer = self.serializer_class(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            filename = serializer.validated_data['filename']
+            invoice_id = serializer.validated_data['invoice_id']
 
-        # Generate object key
-        object_key = f"invoices/{invoice_id}/{filename}"
+            # Check if invoice exists and accessible
+            try:
+                InvoiceData.objects.get(id=invoice_id, created_by__branch=request.user.branch)
+            except InvoiceData.DoesNotExist:
+                return Response({"error": "Invoice not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Create S3 client
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME
-        )
+            # Generate object key
+            object_key = f"invoices/{invoice_id}/{filename}"
 
-        try:
-            presigned_url = s3_client.generate_presigned_url(
-                'put_object',
-                Params={
-                    'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
-                    'Key': object_key,
-                    'ContentType': 'application/octet-stream'  # Adjust if needed
-                },
-                ExpiresIn=3000  # 5 minutes
+            # Create S3 client
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME
             )
-        except NoCredentialsError:
-            return Response({"error": "AWS credentials not available"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return Response({
-            "presigned_url": presigned_url,
-            "object_key": object_key,
-            "invoice_id": invoice_id
-        }, status=status.HTTP_200_OK)
+            try:
+                presigned_url = s3_client.generate_presigned_url(
+                    'put_object',
+                    Params={
+                        'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                        'Key': object_key,
+                        'ContentType': 'application/octet-stream'  # Adjust if needed
+                    },
+                    ExpiresIn=3000  # 5 minutes
+                )
+            except NoCredentialsError:
+                return Response({"error": "AWS credentials not available"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            return Response({
+                "presigned_url": presigned_url,
+                "object_key": object_key,
+                "invoice_id": invoice_id
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UpdateInvoiceFileAPIView(APIView):
-    permission_classes = [IsAuthenticated, CoOfficerPermission]
+    permission_classes = [IsAuthenticated]
     serializer_class = UpdateInvoiceFileSerializer
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        invoice_id = serializer.validated_data['invoice_id']
-        object_key = serializer.validated_data['object_key']
-
         try:
-            # Fetch the specific invoice
-            invoice = InvoiceData.objects.get(
-                id=invoice_id, 
-                created_by__branch=request.user.branch
-            )
-        except InvoiceData.DoesNotExist:
-            return Response(
-                {"error": "Invoice not found or not accessible"}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            serializer = self.serializer_class(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            invoice_id = serializer.validated_data['invoice_id']
+            object_key = serializer.validated_data['object_key']
 
-        # SAVE ACTION: Store the permanent object key only
-        invoice.object_key = object_key
-        invoice.save()
+            try:
+                # Fetch the specific invoice
+                invoice = InvoiceData.objects.get(
+                    id=invoice_id, 
+                    created_by__branch=request.user.branch
+                )
+            except InvoiceData.DoesNotExist:
+                return Response(
+                    {"error": "Invoice not found or not accessible"}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
-        return Response({
-            "message": "Invoice updated successfully", 
-            "invoice_id": invoice_id,
-            "object_key": object_key
-        }, status=status.HTTP_200_OK)
+            # SAVE ACTION: Store the permanent object key only
+            invoice.object_key = object_key
+            invoice.save()
+
+            return Response({
+                "message": "Invoice updated successfully", 
+                "invoice_id": invoice_id,
+                "object_key": object_key
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ListInvoiceFilesAPIView(APIView):
     permission_classes = [IsAuthenticated]

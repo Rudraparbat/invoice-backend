@@ -34,12 +34,14 @@ ALLOWED_HOSTS = [
     'bali-khadan-mini.onrender.com',
     'localhost',
     '127.0.0.1',
+    "*"
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 CSRF_TRUSTED_ORIGINS = [
     "https://invoice-backend-ttkj.onrender.com",
     "http://localhost:3000",
     "https://bali-khadan-mini.onrender.com",
+
 ]
 
 # Application definition

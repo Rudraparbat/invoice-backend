@@ -22,7 +22,7 @@ class CoOfficerPermission(permissions.BasePermission):
     Permissions for CoOfficerPermission
     """
     def has_permission(self, request, view):
-        return request.user.is_co_officer
+        return request.user.is_coofficer
 
 class AdminPermission(permissions.BasePermission):
     """
