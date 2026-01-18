@@ -34,12 +34,14 @@ ALLOWED_HOSTS = [
     'bali-khadan-mini.onrender.com',
     'localhost',
     '127.0.0.1',
+    "*"
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 CSRF_TRUSTED_ORIGINS = [
     "https://invoice-backend-ttkj.onrender.com",
     "http://localhost:3000",
     "https://bali-khadan-mini.onrender.com",
+
 ]
 
 # Application definition
@@ -142,6 +144,13 @@ SPECTACULAR_SETTINGS = {
     'ENABLE_SCHEMA_VIEW_ACTIONS': True,  # Scans actions
     'COMPONENT_NO_READ_ONLY_REQUIRED': True,
 }
+
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
+AWS_S3_CUSTOM_DOMAIN = os.getenv('AWS_S3_CUSTOM_DOMAIN')
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

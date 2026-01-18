@@ -3,6 +3,22 @@ from rest_framework import serializers
 
 from ivg.models import Branches, InvoiceData, InvoiceUser
 
+class InvoiceViewFileSerializer(serializers.Serializer):
+    invoice_id = serializers.IntegerField()
+    
+class PresignedURLSerializer(serializers.Serializer):
+    filename = serializers.CharField(max_length=255)
+    invoice_id = serializers.IntegerField()
+
+
+class UpdateInvoiceFileSerializer(serializers.Serializer):
+    invoice_id = serializers.IntegerField()
+    object_key = serializers.CharField(max_length=500)
+
+
+class ListInvoiceFilesSerializer(serializers.Serializer):
+    invoice_id = serializers.IntegerField()
+
 
 class InvoiceGenerationSerializer(serializers.ModelSerializer):
     # Separate formatted fields
@@ -14,6 +30,7 @@ class InvoiceGenerationSerializer(serializers.ModelSerializer):
             'id', 'trip', 'police_station', 'car_number', 
             'phone_number', 'name', 'location', 'wheels', 
             'cft', 'remarks',
+            'object_key',
             'created_by_name'
         ]
         read_only_fields = ('id', 'created_by_name')
@@ -49,7 +66,7 @@ class InvoiceDataListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'created_by', 'trip', 'police_station', 'car_number', 
             'phone_number', 'name', 'location', 'wheels', 'cft', 
-            'remarks', 'created_at' , 'updated_at'
+            'remarks', 'object_key', 'created_at' , 'updated_at'
         ]
 
 

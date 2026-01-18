@@ -80,6 +80,7 @@ class InvoiceData(Base) :
     wheels = models.IntegerField()
     cft = models.FloatField()
     remarks = models.TextField(null=True , blank=True)
+    object_key = models.CharField(max_length=500, null=True, blank=True)
 
     class Meta :
         ordering = ['-created_at' , '-updated_at']
